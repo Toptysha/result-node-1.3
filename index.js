@@ -1,60 +1,56 @@
-const express = require("express");
-const path = require("path");
+const yargs = require("yargs");
 const {
   getNotes,
   addNote,
-  editNote,
   removeNote,
+  editNote,
 } = require("./notes.controller");
 
-const PORT = 3000;
-
-const app = express();
-
-app.set("view engine", "ejs");
-app.set("views", "pages");
-
-app.use(express.json());
-app.use(express.static(path.resolve(__dirname, "public")));
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
-
-app.get("/", async (request, response) => {
-  response.render("index", {
-    title: "Express application",
-    notes: await getNotes(),
-    created: false,
-  });
+yargs.command({
+  command: "add",
+  describe: "Add new note to list",
+  builder: {
+    title: { type: "string", describe: "Note title", demandOption: true },
+  },
+  handler({ title }) {
+    addNote(title);
+    console.log("Note added successfully", title);
+  },
 });
 
-app.post("/", async (request, response) => {
-  await addNote(request.body.title);
-  response.render("index", {
-    title: "Express application",
-    notes: await getNotes(),
-    created: true,
-  });
+yargs.command({
+  command: "list",
+  describe: "Print all notes",
+  async handler() {
+    const notes = await getNotes();
+    console.log("Here is the list of notes:");
+    notes.forEach(({ id, title }) => console.log(id, title));
+  },
 });
 
-app.put("/:id", async (request, response) => {
-  await editNote(request.params.id, request.body.title);
-  response.render("index", {
-    title: "Express application",
-    notes: await getNotes(),
-    created: false,
-  });
+yargs.command({
+  command: "remove",
+  describe: "Remove note by id",
+  builder: {
+    id: { type: "string", describe: "Note id", demandOption: true },
+  },
+  handler({ id }) {
+    removeNote(id);
+    console.log("Note deleted successfully");
+  },
 });
 
-app.delete("/:id", async (request, response) => {
-  await removeNote(request.params.id);
-  response.render("index", {
-    title: "Express application",
-    notes: await getNotes(),
-    created: false,
-  });
+yargs.command({
+  command: "edit",
+  describe: "Edit note by id",
+  builder: {
+    id: { type: "string", describe: "Note id", demandOption: true },
+    title: { type: "string", describe: "Note title", demandOption: true },
+  },
+  handler({ id, title }) {
+    editNote(id, title);
+    console.log("Note edited successfully");
+  },
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+yargs.parse();
